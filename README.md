@@ -1,0 +1,2 @@
+# nwenc
+Nextword data encoding.
