@@ -1,7 +1,7 @@
 # nwenc
 
-[![TravisCI](https://travis-ci.org/high-moctane/go-bitio.svg?branch=master)](https://travis-ci.org/high-moctane/nwenc)
-[![CodeCov](https://codecov.io/gh/high-moctane/go-bitio/branch/master/graph/badge.svg)](https://codecov.io/gh/high-moctane/nwenc)
-[![GoDoc](https://godoc.org/github.com/high-moctane/go-bitio?status.svg)](https://godoc.org/github.com/high-moctane/nwenc)
+[![TravisCI](https://travis-ci.org/high-moctane/nwenc.svg?branch=master)](https://travis-ci.org/high-moctane/nwenc)
+[![CodeCov](https://codecov.io/gh/high-moctane/nwenc/branch/master/graph/badge.svg)](https://codecov.io/gh/high-moctane/nwenc)
+[![GoDoc](https://godoc.org/github.com/high-moctane/nwenc?status.svg)](https://godoc.org/github.com/high-moctane/nwenc)
 
 Nextword data encoding.
