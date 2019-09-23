@@ -7,11 +7,15 @@ import (
 	"unicode/utf8"
 )
 
+// AllReadPosMapper is one of the implementation of PosMapper.
+// It reads all of io.Reader in advance in order to map fast.
 type AllReadPosMapper struct {
 	sToPos map[string]int64
 	posToS map[int64]string
 }
 
+// NewAllReadPosMapper returns an AllReadPosMapper.
+// This function reads all of io.Reader in advance in order to map fast.
 func NewAllReadPosMapper(r io.Reader) (*AllReadPosMapper, error) {
 	m := &AllReadPosMapper{
 		posToS: map[int64]string{},
@@ -51,6 +55,8 @@ func NewAllReadPosMapper(r io.Reader) (*AllReadPosMapper, error) {
 	return m, nil
 }
 
+// PosEncode is the implementation of PosEncoder. It works fast.
+// When s is not found, it will return PosEncodeError.
 func (m *AllReadPosMapper) PosEncode(s string) (pos int64, err error) {
 	var ok bool
 	pos, ok = m.sToPos[s]
@@ -61,6 +67,8 @@ func (m *AllReadPosMapper) PosEncode(s string) (pos int64, err error) {
 	return
 }
 
+// PosDecode is the implementation of PosDecode. It works fast.
+// When pos is not found, it will return PosDecodeError.
 func (m *AllReadPosMapper) PosDecode(pos int64) (s string, err error) {
 	var ok bool
 	s, ok = m.posToS[pos]
@@ -71,15 +79,21 @@ func (m *AllReadPosMapper) PosDecode(pos int64) (s string, err error) {
 	return
 }
 
+// SeekPosMapper is the implementation of PosMapper.
+// It seeks file each time when PosEncode or PosDecode are called, so it works slowly.
 type SeekPosMapper struct {
 	r    io.ReaderAt
 	size int64
 }
 
+// NewSeekPosMapper returns an NewSeekPosMapper. The size is the total bytes of r.
+// It seeks file each time when PosEncode or PosDecode are called, so it works slowly.
 func NewSeekPosMapper(r io.ReaderAt, size int64) *SeekPosMapper {
 	return &SeekPosMapper{r: r, size: size}
 }
 
+// PosEncode is the implementation of PosEncoder.
+// This function works slow because it needs io.ReadAt seeking each time.
 func (pm *SeekPosMapper) PosEncode(s string) (pos int64, err error) {
 	pos, ok, err := readerAtBinSearch(pm.r, s, 0, pm.size+1)
 	if err != nil {
@@ -92,6 +106,8 @@ func (pm *SeekPosMapper) PosEncode(s string) (pos int64, err error) {
 	return
 }
 
+// readerAtBinsearch searches s from r. The left and right is the offset which
+// seeks from and to. When s is found, ok will be true.
 func readerAtBinSearch(r io.ReaderAt, s string, left, right int64) (pos int64, ok bool, err error) {
 	var midS string
 	for left+1 < right {
@@ -113,6 +129,7 @@ func readerAtBinSearch(r io.ReaderAt, s string, left, right int64) (pos int64, o
 	return
 }
 
+// searchMidPos finds s and pos which exists r from left to right offsets.
 func searchMidPos(r io.ReaderAt, left, right int64) (s string, pos int64, err error) {
 	pos, err = findBeginOfLine(r, left+(right-left)/2)
 	if err != nil && err != io.EOF {
@@ -130,6 +147,8 @@ func searchMidPos(r io.ReaderAt, left, right int64) (s string, pos int64, err er
 	return
 }
 
+// findBeginOfLine finds the beginning of line which the line contains pos.
+// It returns head offset int64.
 func findBeginOfLine(r io.ReaderAt, pos int64) (first int64, err error) {
 	for i := pos; i >= 0; i-- {
 		if i == 0 {
@@ -154,6 +173,7 @@ func findBeginOfLine(r io.ReaderAt, pos int64) (first int64, err error) {
 	return
 }
 
+// readLine reads a line from pos to '\n' ('\n' is not included).
 func readLine(r io.ReaderAt, pos int64) (s string, err error) {
 	sBuf := []byte{}
 
@@ -177,6 +197,8 @@ func readLine(r io.ReaderAt, pos int64) (s string, err error) {
 	return
 }
 
+// PosDecode is the implementation of PosDecoder.
+// This function works slow because it needs io.ReadAt seeking each time.
 func (pm *SeekPosMapper) PosDecode(pos int64) (s string, err error) {
 	if pos >= pm.size {
 		err = &PosDecodeError{pos: pos}
@@ -216,12 +238,18 @@ func (pm *SeekPosMapper) PosDecode(pos int64) (s string, err error) {
 	return
 }
 
+// CachedSeekPosMapper is the implementation of PosMapper.
+// It seeks io.ReaderAt when methods are called, but caches the results.
+// It's takes shorter time rather than SeekPosMapper.
 type CachedSeekPosMapper struct {
 	r     io.ReaderAt
 	size  int64
 	cache *posNode
 }
 
+// NewCachedSeekPosMapper returns a CachedSeekPosMapper. The size is total bytes of r.
+// It seeks io.ReaderAt when methods are called, but caches the results.
+// It's takes shorter time rather than SeekPosMapper.
 func NewCachedSeekPosMapper(r io.ReaderAt, size int64) *CachedSeekPosMapper {
 	return &CachedSeekPosMapper{
 		r:     r,
@@ -230,6 +258,8 @@ func NewCachedSeekPosMapper(r io.ReaderAt, size int64) *CachedSeekPosMapper {
 	}
 }
 
+// PosEncode is the implementation of PosEncoder.
+// This method makes cache when it is called.
 func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
 	pos, left, right, ok := pm.cache.searchString(s, 0, pm.size+1)
 	if ok {
@@ -259,8 +289,9 @@ func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
 	return
 }
 
+// PosDecode is the implementation of PosDecoder.
+// This method doesn't make cache even when it is called.
 func (pm *CachedSeekPosMapper) PosDecode(pos int64) (s string, err error) {
-	// TODO
 	s, _, _, ok := pm.cache.searchPos(pos, 0, pm.size+1)
 	if ok {
 		return
@@ -277,12 +308,14 @@ func (pm *CachedSeekPosMapper) PosDecode(pos int64) (s string, err error) {
 	return
 }
 
+// PosNode is the node which consists a binary search tree.
 type posNode struct {
 	s           string
 	pos         int64
 	left, right *posNode
 }
 
+// add adds new node into pn. The caller must update pn by root.
 func (pn *posNode) add(s string, pos int64) (root *posNode) {
 	if pn == nil {
 		root = &posNode{s: s, pos: pos}
@@ -297,6 +330,7 @@ func (pn *posNode) add(s string, pos int64) (root *posNode) {
 	return pn
 }
 
+// searchString searches s from the range of inLeft to inRight offsets.
 func (pn *posNode) searchString(s string, inLeft, inRight int64) (pos, left, right int64, ok bool) {
 	f := func(node *posNode) int {
 		if s < node.s {
@@ -316,6 +350,7 @@ func (pn *posNode) searchString(s string, inLeft, inRight int64) (pos, left, rig
 	return
 }
 
+// searchPos searches pos from the range of inLeft to inRight offsets.
 func (pn *posNode) searchPos(pos int64, inLeft, inRight int64) (s string, left, right int64, ok bool) {
 	f := func(node *posNode) int { return int(pos - node.pos) }
 
@@ -328,6 +363,7 @@ func (pn *posNode) searchPos(pos int64, inLeft, inRight int64) (s string, left, 
 	return
 }
 
+// search searches the node which pred returns true. The node will be nil when not found.
 func (pn *posNode) search(pred func(*posNode) int, inLeft, inRight int64) (node *posNode, left, right int64) {
 	if pn == nil {
 		left = inLeft
