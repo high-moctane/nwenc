@@ -43,6 +43,146 @@ func TestNewAllReadPosMapper(t *testing.T) {
 	}
 }
 
+func TestAllReadPosMapper_PosEncode(t *testing.T) {
+	type outType struct {
+		pos int64
+		err error
+	}
+	tests := []struct {
+		in  string
+		out outType
+	}{
+		{
+			"a",
+			outType{0, nil},
+		},
+		{
+			"aaaabbbbccccddddeeeeffffgggghhhhiii",
+			outType{2, nil},
+		},
+		{
+			"abcd",
+			outType{38, nil},
+		},
+		{
+			"bcd",
+			outType{43, nil},
+		},
+		{
+			"defgh",
+			outType{47, nil},
+		},
+		{
+			"deg",
+			outType{53, nil},
+		},
+		{
+			"ijk",
+			outType{57, nil},
+		},
+		{
+			"ijkl",
+			outType{61, nil},
+		},
+		{
+			"0",
+			outType{0, &PosEncodeError{s: "0"}},
+		},
+		{
+			"aaaaa",
+			outType{0, &PosEncodeError{s: "aaaaa"}},
+		},
+		{
+			"ijkk",
+			outType{0, &PosEncodeError{s: "ijkk"}},
+		},
+		{
+			"z",
+			outType{0, &PosEncodeError{s: "z"}},
+		},
+	}
+
+	// open test data
+	f, err := os.Open(filepath.Join("testdata", "words.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer f.Close()
+
+	pm, err := NewAllReadPosMapper(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for idx, test := range tests {
+		pos, err := pm.PosEncode(test.in)
+		if !reflect.DeepEqual(test.out.err, err) {
+			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
+			continue
+		}
+		if err != nil {
+			continue
+		}
+		if test.out.pos != pos {
+			t.Errorf("[%d] expected %d, but got %d", idx, test.out.pos, pos)
+		}
+	}
+}
+
+func TestAllReadPosMapper_PosDecode(t *testing.T) {
+	type outType struct {
+		s   string
+		err error
+	}
+	tests := []struct {
+		in  int64
+		out outType
+	}{
+		{
+			0, outType{"a", nil},
+		},
+		{
+			2, outType{"aaaabbbbccccddddeeeeffffgggghhhhiii", nil},
+		},
+		{
+			38, outType{"abcd", nil},
+		},
+		{
+			37, outType{"", &PosDecodeError{pos: 37}},
+		},
+		{
+			65, outType{"", &PosDecodeError{pos: 65}},
+		},
+		{
+			66, outType{"", &PosDecodeError{pos: 66}},
+		},
+	}
+
+	// open test data
+	f, err := os.Open(filepath.Join("testdata", "words.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer f.Close()
+
+	pm, err := NewAllReadPosMapper(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for idx, test := range tests {
+		s, err := pm.PosDecode(test.in)
+		if !reflect.DeepEqual(test.out.err, err) {
+			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
+			continue
+		}
+
+		if test.out.s != s {
+			t.Errorf("[%d] expected %#v, but got %#v", idx, test.out.s, s)
+		}
+	}
+}
+
 func BenchmarkAllReadPosMapper_PosEncode(b *testing.B) {
 	queries := []string{
 		"a",
