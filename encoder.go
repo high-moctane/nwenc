@@ -20,7 +20,7 @@ func NewEncoder(byteLen int) (*Encoder, error) {
 }
 
 func (e *Encoder) Encode(w io.Writer, pos int64) error {
-	buf := bytes.NewBuffer(make([]byte, 8))
+	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.BigEndian, pos); err != nil {
 		return err
 	}

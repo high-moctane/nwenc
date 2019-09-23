@@ -20,10 +20,14 @@ func NewDecoder(byteLen int) (*Decoder, error) {
 
 func (d *Decoder) Decode(r io.Reader) (pos int64, err error) {
 	buf := make([]byte, 8)
-	if _, err = r.Read(buf[8-len(buf):]); err != nil {
+	var n int
+	if n, err = r.Read(buf[8-d.l:]); err != nil {
 		return
 	}
-	if err = binary.Read(bytes.NewBuffer(buf), binary.BigEndian, pos); err != nil {
+	if n != d.l {
+		return 0, io.ErrUnexpectedEOF
+	}
+	if err = binary.Read(bytes.NewBuffer(buf), binary.BigEndian, &pos); err != nil {
 		return
 	}
 	return
