@@ -208,9 +208,7 @@ func BenchmarkAllReadPosMapper_PosEncode(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		for _, q := range queries {
-			pm.PosEncode(q)
-		}
+		pm.PosEncode(queries[i%len(queries)])
 	}
 }
 
@@ -230,9 +228,7 @@ func BenchmarkAllReadPosMapper_PosDecode(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		for _, q := range queries {
-			pm.PosDecode(q)
-		}
+		pm.PosDecode(queries[i%len(queries)])
 	}
 }
 
@@ -432,10 +428,10 @@ func BenchmarkSeekPosMapper_PosDecode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
+	// make cache
+
 	for i := 0; i < b.N; i++ {
-		for _, q := range queries {
-			pm.PosDecode(q)
-		}
+		pm.PosDecode(queries[i%len(queries)])
 	}
 }
 
@@ -549,15 +545,27 @@ func BenchmarkCachedSeekPosMapper_PosEncode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
+	// make cache
+	inputs := []string{
+		"a",
+		"aaaabbbbccccddddeeeeffffgggghhhhiii",
+		"abcd",
+		"bcd",
+		"defgh",
+		"deg",
+		"ijk",
+		"ijkl",
+	}
 	pm := NewCachedSeekPosMapper(f, info.Size())
 	if err != nil {
 		b.Fatalf("unexpected error: %v", err)
 	}
+	for _, in := range inputs {
+		pm.PosEncode(in)
+	}
 
 	for i := 0; i < b.N; i++ {
-		for _, q := range queries {
-			pm.PosEncode(q)
-		}
+		pm.PosEncode(queries[i%len(queries)])
 	}
 }
 
@@ -650,9 +658,7 @@ func BenchmarkCachedSeekPosMapper_PosDecode(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		for _, q := range queries {
-			pm.PosDecode(q)
-		}
+		pm.PosDecode(queries[i%len(queries)])
 	}
 }
 
