@@ -95,7 +95,7 @@ func NewSeekPosMapper(r io.ReaderAt, size int64) *SeekPosMapper {
 // PosEncode is the implementation of PosEncoder.
 // This function works slow because it needs io.ReadAt seeking each time.
 func (pm *SeekPosMapper) PosEncode(s string) (pos int64, err error) {
-	pos, ok, err := readerAtBinSearch(pm.r, s, 0, pm.size+1)
+	pos, ok, err := readerAtBinSearch(pm.r, s, 0, pm.size)
 	if err != nil {
 		return
 	}
@@ -261,7 +261,7 @@ func NewCachedSeekPosMapper(r io.ReaderAt, size int64) *CachedSeekPosMapper {
 // PosEncode is the implementation of PosEncoder.
 // This method makes cache when it is called.
 func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
-	pos, left, right, ok := pm.cache.searchString(s, 0, pm.size+1)
+	pos, left, right, ok := pm.cache.searchString(s, 0, pm.size)
 	if ok {
 		return
 	}
@@ -292,7 +292,7 @@ func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
 // PosDecode is the implementation of PosDecoder.
 // This method doesn't make cache even when it is called.
 func (pm *CachedSeekPosMapper) PosDecode(pos int64) (s string, err error) {
-	s, _, _, ok := pm.cache.searchPos(pos, 0, pm.size+1)
+	s, _, _, ok := pm.cache.searchPos(pos, 0, pm.size)
 	if ok {
 		return
 	}
