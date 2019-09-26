@@ -242,9 +242,10 @@ func (pm *SeekPosMapper) PosDecode(pos int64) (s string, err error) {
 // It seeks io.ReaderAt when methods are called, but caches the results.
 // It's takes shorter time rather than SeekPosMapper.
 type CachedSeekPosMapper struct {
-	r     io.ReaderAt
-	size  int64
-	cache *posNode
+	r         io.ReaderAt
+	size      int64
+	cacheTree *posNode
+	cacheMap  map[int64]string
 }
 
 // NewCachedSeekPosMapper returns a CachedSeekPosMapper. The size is total bytes of r.
@@ -252,16 +253,17 @@ type CachedSeekPosMapper struct {
 // It's takes shorter time rather than SeekPosMapper.
 func NewCachedSeekPosMapper(r io.ReaderAt, size int64) *CachedSeekPosMapper {
 	return &CachedSeekPosMapper{
-		r:     r,
-		size:  size,
-		cache: nil,
+		r:         r,
+		size:      size,
+		cacheTree: nil,
+		cacheMap:  map[int64]string{},
 	}
 }
 
 // PosEncode is the implementation of PosEncoder.
 // This method makes cache when it is called.
 func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
-	pos, left, right, ok := pm.cache.searchString(s, 0, pm.size)
+	pos, left, right, ok := pm.cacheTree.searchString(s, 0, pm.size)
 	if ok {
 		return
 	}
@@ -274,7 +276,7 @@ func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
 			return
 		}
 
-		pm.cache = pm.cache.add(midS, pos)
+		pm.cacheTree = pm.cacheTree.add(midS, pos)
 
 		if s == midS {
 			return
@@ -290,9 +292,12 @@ func (pm *CachedSeekPosMapper) PosEncode(s string) (pos int64, err error) {
 }
 
 // PosDecode is the implementation of PosDecoder.
-// This method doesn't make cache even when it is called.
 func (pm *CachedSeekPosMapper) PosDecode(pos int64) (s string, err error) {
-	s, _, _, ok := pm.cache.searchPos(pos, 0, pm.size)
+	s, ok := pm.cacheMap[pos]
+	if ok {
+		return
+	}
+	s, _, _, ok = pm.cacheTree.searchPos(pos, 0, pm.size)
 	if ok {
 		return
 	}
@@ -303,8 +308,7 @@ func (pm *CachedSeekPosMapper) PosDecode(pos int64) (s string, err error) {
 		return
 	}
 
-	// NOTE: Don't cache in order to make balanced tree.
-	// pm.cache.add(s, pos)
+	pm.cacheMap[pos] = s
 	return
 }
 
