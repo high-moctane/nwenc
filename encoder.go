@@ -22,10 +22,10 @@ func NewEncoder(byteLen int) (*Encoder, error) {
 	return &Encoder{l: byteLen}, nil
 }
 
-// Encode encodes pos to bytes and writes it to w.
-func (e *Encoder) Encode(w io.Writer, pos int64) error {
+// Encode encodes offset to bytes and writes it to w.
+func (e *Encoder) Encode(w io.Writer, offset int64) error {
 	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, pos); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, offset); err != nil {
 		return err
 	}
 	b := buf.Bytes()
@@ -36,12 +36,12 @@ func (e *Encoder) Encode(w io.Writer, pos int64) error {
 }
 
 // EncodeString encodes s to bytes and writes it to w.
-func (e *Encoder) EncodeString(w io.Writer, pd PosEncoder, s string) error {
-	pos, err := pd.PosEncode(s)
+func (e *Encoder) EncodeString(w io.Writer, oe OffsetEncoder, s string) error {
+	offset, err := oe.OffsetEncode(s)
 	if err != nil {
 		return err
 	}
-	if err := e.Encode(w, pos); err != nil {
+	if err := e.Encode(w, offset); err != nil {
 		return err
 	}
 	return nil

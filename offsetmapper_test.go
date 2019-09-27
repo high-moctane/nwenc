@@ -8,30 +8,30 @@ import (
 	"testing"
 )
 
-func TestNewAllReadPosMapper(t *testing.T) {
+func TestNewAllReadOffsetMapper(t *testing.T) {
 	tests := []struct {
 		in  string
-		out *AllReadPosMapper
+		out *AllReadOffsetMapper
 	}{
 		{
 			"a\n",
-			&AllReadPosMapper{
-				posToS: map[int64]string{0: "a"},
-				sToPos: map[string]int64{"a": 0},
+			&AllReadOffsetMapper{
+				offsetToS: map[int64]string{0: "a"},
+				sToOffset: map[string]int64{"a": 0},
 			},
 		},
 		{
 			"a\nbcd\nefg\nhijk\n",
-			&AllReadPosMapper{
-				posToS: map[int64]string{0: "a", 2: "bcd", 6: "efg", 10: "hijk"},
-				sToPos: map[string]int64{"a": 0, "bcd": 2, "efg": 6, "hijk": 10},
+			&AllReadOffsetMapper{
+				offsetToS: map[int64]string{0: "a", 2: "bcd", 6: "efg", 10: "hijk"},
+				sToOffset: map[string]int64{"a": 0, "bcd": 2, "efg": 6, "hijk": 10},
 			},
 		},
 	}
 
 	for idx, test := range tests {
 		r := strings.NewReader(test.in)
-		m, err := NewAllReadPosMapper(r)
+		m, err := NewAllReadOffsetMapper(r)
 		if err != nil {
 			t.Errorf("[%d] unexoected error: %v", idx, err)
 			continue
@@ -43,10 +43,10 @@ func TestNewAllReadPosMapper(t *testing.T) {
 	}
 }
 
-func TestAllReadPosMapper_PosEncode(t *testing.T) {
+func TestAllReadOffsetMapper_OffsetEncode(t *testing.T) {
 	type outType struct {
-		pos int64
-		err error
+		offset int64
+		err    error
 	}
 	tests := []struct {
 		in  string
@@ -86,19 +86,19 @@ func TestAllReadPosMapper_PosEncode(t *testing.T) {
 		},
 		{
 			"0",
-			outType{0, &PosEncodeError{s: "0"}},
+			outType{0, &OffsetEncodeError{s: "0"}},
 		},
 		{
 			"aaaaa",
-			outType{0, &PosEncodeError{s: "aaaaa"}},
+			outType{0, &OffsetEncodeError{s: "aaaaa"}},
 		},
 		{
 			"ijkk",
-			outType{0, &PosEncodeError{s: "ijkk"}},
+			outType{0, &OffsetEncodeError{s: "ijkk"}},
 		},
 		{
 			"z",
-			outType{0, &PosEncodeError{s: "z"}},
+			outType{0, &OffsetEncodeError{s: "z"}},
 		},
 	}
 
@@ -109,13 +109,13 @@ func TestAllReadPosMapper_PosEncode(t *testing.T) {
 	}
 	defer f.Close()
 
-	pm, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	for idx, test := range tests {
-		pos, err := pm.PosEncode(test.in)
+		offset, err := om.OffsetEncode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -123,13 +123,13 @@ func TestAllReadPosMapper_PosEncode(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if test.out.pos != pos {
-			t.Errorf("[%d] expected %d, but got %d", idx, test.out.pos, pos)
+		if test.out.offset != offset {
+			t.Errorf("[%d] expected %d, but got %d", idx, test.out.offset, offset)
 		}
 	}
 }
 
-func TestAllReadPosMapper_PosDecode(t *testing.T) {
+func TestAllReadOffsetMapper_OffsetDecode(t *testing.T) {
 	type outType struct {
 		s   string
 		err error
@@ -148,13 +148,13 @@ func TestAllReadPosMapper_PosDecode(t *testing.T) {
 			38, outType{"abcd", nil},
 		},
 		{
-			37, outType{"", &PosDecodeError{pos: 37}},
+			37, outType{"", &OffsetDecodeError{offset: 37}},
 		},
 		{
-			65, outType{"", &PosDecodeError{pos: 65}},
+			65, outType{"", &OffsetDecodeError{offset: 65}},
 		},
 		{
-			66, outType{"", &PosDecodeError{pos: 66}},
+			66, outType{"", &OffsetDecodeError{offset: 66}},
 		},
 	}
 
@@ -165,13 +165,13 @@ func TestAllReadPosMapper_PosDecode(t *testing.T) {
 	}
 	defer f.Close()
 
-	pm, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	for idx, test := range tests {
-		s, err := pm.PosDecode(test.in)
+		s, err := om.OffsetDecode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -183,7 +183,7 @@ func TestAllReadPosMapper_PosDecode(t *testing.T) {
 	}
 }
 
-func BenchmarkAllReadPosMapper_PosEncode(b *testing.B) {
+func BenchmarkAllReadOffsetMapper_OffsetEncode(b *testing.B) {
 	queries := []string{
 		"a",
 		"aaaabbbbccccddddeeeeffffgggghhhhiii",
@@ -202,17 +202,17 @@ func BenchmarkAllReadPosMapper_PosEncode(b *testing.B) {
 	}
 	defer f.Close()
 
-	pm, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
-		pm.PosEncode(queries[i%len(queries)])
+		om.OffsetEncode(queries[i%len(queries)])
 	}
 }
 
-func BenchmarkAllReadPosMapper_PosDecode(b *testing.B) {
+func BenchmarkAllReadOffsetMapper_OffsetDecode(b *testing.B) {
 	queries := []int64{0, 2, 38, 43, 47, 53, 57, 61}
 
 	// open file
@@ -222,20 +222,20 @@ func BenchmarkAllReadPosMapper_PosDecode(b *testing.B) {
 	}
 	defer f.Close()
 
-	pm, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
-		pm.PosDecode(queries[i%len(queries)])
+		om.OffsetDecode(queries[i%len(queries)])
 	}
 }
 
-func TestSeekPosMapper_PosEncode(t *testing.T) {
+func TestSeekOffsetMapper_OffsetEncode(t *testing.T) {
 	type outType struct {
-		pos int64
-		err error
+		offset int64
+		err    error
 	}
 	tests := []struct {
 		in  string
@@ -275,19 +275,19 @@ func TestSeekPosMapper_PosEncode(t *testing.T) {
 		},
 		{
 			"0",
-			outType{0, &PosEncodeError{s: "0"}},
+			outType{0, &OffsetEncodeError{s: "0"}},
 		},
 		{
 			"aaaaa",
-			outType{0, &PosEncodeError{s: "aaaaa"}},
+			outType{0, &OffsetEncodeError{s: "aaaaa"}},
 		},
 		{
 			"ijkk",
-			outType{0, &PosEncodeError{s: "ijkk"}},
+			outType{0, &OffsetEncodeError{s: "ijkk"}},
 		},
 		{
 			"z",
-			outType{0, &PosEncodeError{s: "z"}},
+			outType{0, &OffsetEncodeError{s: "z"}},
 		},
 	}
 
@@ -302,10 +302,10 @@ func TestSeekPosMapper_PosEncode(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewSeekPosMapper(f, info.Size())
+	om := NewSeekOffsetMapper(f, info.Size())
 
 	for idx, test := range tests {
-		pos, err := pm.PosEncode(test.in)
+		offset, err := om.OffsetEncode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -313,13 +313,13 @@ func TestSeekPosMapper_PosEncode(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if test.out.pos != pos {
-			t.Errorf("[%d] expected %d, but got %d", idx, test.out.pos, pos)
+		if test.out.offset != offset {
+			t.Errorf("[%d] expected %d, but got %d", idx, test.out.offset, offset)
 		}
 	}
 }
 
-func BenchmarkSeekPosMapper_PosEncode(b *testing.B) {
+func BenchmarkSeekOffsetMapper_OffsetEncode(b *testing.B) {
 	queries := []string{
 		"a",
 		"aaaabbbbccccddddeeeeffffgggghhhhiii",
@@ -342,19 +342,19 @@ func BenchmarkSeekPosMapper_PosEncode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewSeekPosMapper(f, info.Size())
+	om := NewSeekOffsetMapper(f, info.Size())
 	if err != nil {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
 		for _, q := range queries {
-			pm.PosEncode(q)
+			om.OffsetEncode(q)
 		}
 	}
 }
 
-func TestSeekPosMapper_PosDecode(t *testing.T) {
+func TestSeekOffsetMapper_OffsetDecode(t *testing.T) {
 	type outType struct {
 		s   string
 		err error
@@ -373,13 +373,13 @@ func TestSeekPosMapper_PosDecode(t *testing.T) {
 			38, outType{"abcd", nil},
 		},
 		{
-			37, outType{"", &PosDecodeError{pos: 37}},
+			37, outType{"", &OffsetDecodeError{offset: 37}},
 		},
 		{
-			65, outType{"", &PosDecodeError{pos: 65}},
+			65, outType{"", &OffsetDecodeError{offset: 65}},
 		},
 		{
-			66, outType{"", &PosDecodeError{pos: 66}},
+			66, outType{"", &OffsetDecodeError{offset: 66}},
 		},
 	}
 
@@ -394,10 +394,10 @@ func TestSeekPosMapper_PosDecode(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewSeekPosMapper(f, info.Size())
+	om := NewSeekOffsetMapper(f, info.Size())
 
 	for idx, test := range tests {
-		s, err := pm.PosDecode(test.in)
+		s, err := om.OffsetDecode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -409,7 +409,7 @@ func TestSeekPosMapper_PosDecode(t *testing.T) {
 	}
 }
 
-func BenchmarkSeekPosMapper_PosDecode(b *testing.B) {
+func BenchmarkSeekOffsetMapper_OffsetDecode(b *testing.B) {
 	queries := []int64{0, 2, 38, 43, 47, 53, 57, 61}
 
 	// open file
@@ -423,7 +423,7 @@ func BenchmarkSeekPosMapper_PosDecode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewSeekPosMapper(f, info.Size())
+	om := NewSeekOffsetMapper(f, info.Size())
 	if err != nil {
 		b.Fatalf("unexpected error: %v", err)
 	}
@@ -431,14 +431,14 @@ func BenchmarkSeekPosMapper_PosDecode(b *testing.B) {
 	// make cache
 
 	for i := 0; i < b.N; i++ {
-		pm.PosDecode(queries[i%len(queries)])
+		om.OffsetDecode(queries[i%len(queries)])
 	}
 }
 
-func TestCachedSeekPosMapper_PosEncode(t *testing.T) {
+func TestCachedSeekOffsetMapper_OffsetEncode(t *testing.T) {
 	type outType struct {
-		pos int64
-		err error
+		offset int64
+		err    error
 	}
 	tests := []struct {
 		in  string
@@ -478,19 +478,19 @@ func TestCachedSeekPosMapper_PosEncode(t *testing.T) {
 		},
 		{
 			"0",
-			outType{0, &PosEncodeError{s: "0"}},
+			outType{0, &OffsetEncodeError{s: "0"}},
 		},
 		{
 			"aaaaa",
-			outType{0, &PosEncodeError{s: "aaaaa"}},
+			outType{0, &OffsetEncodeError{s: "aaaaa"}},
 		},
 		{
 			"ijkk",
-			outType{0, &PosEncodeError{s: "ijkk"}},
+			outType{0, &OffsetEncodeError{s: "ijkk"}},
 		},
 		{
 			"z",
-			outType{0, &PosEncodeError{s: "z"}},
+			outType{0, &OffsetEncodeError{s: "z"}},
 		},
 	}
 
@@ -505,10 +505,10 @@ func TestCachedSeekPosMapper_PosEncode(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewCachedSeekPosMapper(f, info.Size())
+	om := NewCachedSeekOffsetMapper(f, info.Size())
 
 	for idx, test := range tests {
-		pos, err := pm.PosEncode(test.in)
+		offset, err := om.OffsetEncode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -516,13 +516,13 @@ func TestCachedSeekPosMapper_PosEncode(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if test.out.pos != pos {
-			t.Errorf("[%d] expected %d, but got %d", idx, test.out.pos, pos)
+		if test.out.offset != offset {
+			t.Errorf("[%d] expected %d, but got %d", idx, test.out.offset, offset)
 		}
 	}
 }
 
-func BenchmarkCachedSeekPosMapper_PosEncode(b *testing.B) {
+func BenchmarkCachedSeekOffsetMapper_OffsetEncode(b *testing.B) {
 	queries := []string{
 		"a",
 		"aaaabbbbccccddddeeeeffffgggghhhhiii",
@@ -545,14 +545,14 @@ func BenchmarkCachedSeekPosMapper_PosEncode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewCachedSeekPosMapper(f, info.Size())
+	om := NewCachedSeekOffsetMapper(f, info.Size())
 
 	for i := 0; i < b.N; i++ {
-		pm.PosEncode(queries[i%len(queries)])
+		om.OffsetEncode(queries[i%len(queries)])
 	}
 }
 
-func TestCachedSeekPosMapper_PosDecode(t *testing.T) {
+func TestCachedSeekOffsetMapper_OffsetDecode(t *testing.T) {
 	type outType struct {
 		s   string
 		err error
@@ -571,13 +571,13 @@ func TestCachedSeekPosMapper_PosDecode(t *testing.T) {
 			38, outType{"abcd", nil},
 		},
 		{
-			37, outType{"", &PosDecodeError{pos: 37}},
+			37, outType{"", &OffsetDecodeError{offset: 37}},
 		},
 		{
-			65, outType{"", &PosDecodeError{pos: 65}},
+			65, outType{"", &OffsetDecodeError{offset: 65}},
 		},
 		{
-			66, outType{"", &PosDecodeError{pos: 66}},
+			66, outType{"", &OffsetDecodeError{offset: 66}},
 		},
 	}
 
@@ -592,10 +592,10 @@ func TestCachedSeekPosMapper_PosDecode(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewCachedSeekPosMapper(f, info.Size())
+	om := NewCachedSeekOffsetMapper(f, info.Size())
 
 	for idx, test := range tests {
-		s, err := pm.PosDecode(test.in)
+		s, err := om.OffsetDecode(test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 			continue
@@ -607,7 +607,7 @@ func TestCachedSeekPosMapper_PosDecode(t *testing.T) {
 	}
 }
 
-func BenchmarkCachedSeekPosMapper_PosDecode(b *testing.B) {
+func BenchmarkCachedSeekOffsetMapper_OffsetDecode(b *testing.B) {
 	queries := []int64{0, 2, 38, 43, 47, 53, 57, 61}
 
 	// open file
@@ -621,70 +621,70 @@ func BenchmarkCachedSeekPosMapper_PosDecode(b *testing.B) {
 		b.Fatalf("unexpected error: %v", err)
 	}
 
-	pm := NewCachedSeekPosMapper(f, info.Size())
+	om := NewCachedSeekOffsetMapper(f, info.Size())
 
 	for i := 0; i < b.N; i++ {
-		pm.PosDecode(queries[i%len(queries)])
+		om.OffsetDecode(queries[i%len(queries)])
 	}
 }
 
-func TestPosNode_Add(t *testing.T) {
+func TestOffsetNode_Add(t *testing.T) {
 	type inType struct {
-		s   string
-		pos int64
+		s      string
+		offset int64
 	}
 	tests := []struct {
 		in  []inType
-		out *posNode
+		out *offsetNode
 	}{
 		{
 			[]inType{{"a", 0}},
-			&posNode{s: "a", pos: 0},
+			&offsetNode{s: "a", offset: 0},
 		},
 		{
 			[]inType{{"b", 2}, {"a", 0}, {"c", 4}},
-			&posNode{
-				s:   "b",
-				pos: 2,
-				left: &posNode{
-					s:   "a",
-					pos: 0,
+			&offsetNode{
+				s:      "b",
+				offset: 2,
+				left: &offsetNode{
+					s:      "a",
+					offset: 0,
 				},
-				right: &posNode{
-					s:   "c",
-					pos: 4,
+				right: &offsetNode{
+					s:      "c",
+					offset: 4,
 				},
 			},
 		},
 		{
 			[]inType{{"d", 6}, {"b", 2}, {"a", 0}, {"e", 8}, {"c", 4}},
-			&posNode{
-				s:   "d",
-				pos: 6,
-				left: &posNode{
-					s:   "b",
-					pos: 2,
-					left: &posNode{
-						s:   "a",
-						pos: 0,
+			&offsetNode{
+				s:      "d",
+				offset: 6,
+				left: &offsetNode{
+					s:      "b",
+					offset: 2,
+					left: &offsetNode{
+						s:      "a",
+						offset: 0,
 					},
-					right: &posNode{
-						s:   "c",
-						pos: 4,
+					right: &offsetNode{
+						s:      "c",
+						offset: 4,
 					},
 				},
-				right: &posNode{
-					s:   "e",
-					pos: 8,
+				right: &offsetNode{
+					s:      "e",
+					offset: 8,
 				},
 			},
 		},
 	}
 
 	for idx, test := range tests {
-		var root *posNode
+		var root *offsetNode
 		for _, in := range test.in {
-			root = root.add(in.s, in.pos)
+			root = root.add(in.s, in.offset)
 		}
 
 		if !reflect.DeepEqual(test.out, root) {
@@ -693,10 +693,10 @@ func TestPosNode_Add(t *testing.T) {
 	}
 }
 
-func TestPosNode_SearchString(t *testing.T) {
+func TestOffsetNode_SearchString(t *testing.T) {
 	type nodeInput struct {
-		s   string
-		pos int64
+		s      string
+		offset int64
 	}
 	type inType struct {
 		nodes           []nodeInput
@@ -704,8 +704,8 @@ func TestPosNode_SearchString(t *testing.T) {
 		inLeft, inRight int64
 	}
 	type outType struct {
-		pos, left, right int64
-		ok               bool
+		offset, left, right int64
+		ok                  bool
 	}
 	tests := []struct {
 		in  inType
@@ -794,14 +794,14 @@ func TestPosNode_SearchString(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		var pn *posNode
+		var pn *offsetNode
 		for _, in := range test.in.nodes {
-			pn = pn.add(in.s, in.pos)
+			pn = pn.add(in.s, in.offset)
 		}
 
-		pos, left, right, ok := pn.searchString(test.in.s, test.in.inLeft, test.in.inRight)
-		if test.out.pos != pos {
-			t.Errorf("[%d] pos expected %d, but got %d", idx, test.out.pos, pos)
+		offset, left, right, ok := pn.searchString(test.in.s, test.in.inLeft, test.in.inRight)
+		if test.out.offset != offset {
+			t.Errorf("[%d] offset expected %d, but got %d", idx, test.out.offset, offset)
 		}
 		if test.out.left != left {
 			t.Errorf("[%d] left expected %d, but got %d", idx, test.out.left, left)
@@ -815,14 +815,14 @@ func TestPosNode_SearchString(t *testing.T) {
 	}
 }
 
-func TestPosNode_SearchPos(t *testing.T) {
+func TestOffsetNode_Searchoffset(t *testing.T) {
 	type nodeInput struct {
-		s   string
-		pos int64
+		s      string
+		offset int64
 	}
 	type inType struct {
-		nodes                []nodeInput
-		pos, inLeft, inRight int64
+		nodes                   []nodeInput
+		offset, inLeft, inRight int64
 	}
 	type outType struct {
 		s           string
@@ -916,12 +916,12 @@ func TestPosNode_SearchPos(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		var pn *posNode
+		var pn *offsetNode
 		for _, in := range test.in.nodes {
-			pn = pn.add(in.s, in.pos)
+			pn = pn.add(in.s, in.offset)
 		}
 
-		s, left, right, ok := pn.searchPos(test.in.pos, test.in.inLeft, test.in.inRight)
+		s, left, right, ok := pn.searchoffset(test.in.offset, test.in.inLeft, test.in.inRight)
 		if test.out.s != s {
 			t.Errorf("[%d] s expected %s, but got %s", idx, test.out.s, s)
 		}

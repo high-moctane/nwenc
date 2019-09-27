@@ -11,8 +11,8 @@ import (
 
 func TestDecode(t *testing.T) {
 	type outType struct {
-		pos []int64
-		err error
+		offset []int64
+		err    error
 	}
 	tests := []struct {
 		in  []byte
@@ -42,7 +42,7 @@ TestLoop:
 		r := bytes.NewBuffer(test.in)
 
 		for i := 0; ; i++ {
-			pos, err := dec.Decode(r)
+			offset, err := dec.Decode(r)
 			if err == io.EOF {
 				continue TestLoop
 			}
@@ -52,8 +52,8 @@ TestLoop:
 			if err != nil {
 				continue TestLoop
 			}
-			if test.out.pos[i] != pos {
-				t.Errorf("[%d] expected %d, but got %d", idx, test.out.pos, pos)
+			if test.out.offset[i] != offset {
+				t.Errorf("[%d] expected %d, but got %d", idx, test.out.offset, offset)
 			}
 		}
 	}
@@ -78,17 +78,17 @@ func TestDecodeString(t *testing.T) {
 		},
 		{
 			[]byte{0, 0, 100},
-			outType{"", &PosDecodeError{pos: 100}},
+			outType{"", &OffsetDecodeError{offset: 100}},
 		},
 	}
 
-	// prepare PosDecoder
+	// prepare OffsetDecoder
 	f, err := os.Open(filepath.Join("testdata", "words.txt"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer f.Close()
-	pm, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestDecodeString(t *testing.T) {
 		r := bytes.NewBuffer(test.in)
 		dec, _ := NewDecoder(3)
 
-		s, err := dec.DecodeString(r, pm)
+		s, err := dec.DecodeString(r, om)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 		}

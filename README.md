@@ -7,46 +7,46 @@
 
 Package nwenc is the implementation of encoder and decoder for the nextword data.
 
-## PosEncoder/PosDecoder
+## OffsetEncoder/OffsetDecoder
 
-The PosEncoder and PosDecoder can encode/decode between an int64 position value
+The OffsetEncoder and OffsetDecoder can encode/decode between an int64 offset value
 and a string.
-There are several implementation for PosMapper.
+There are several implementation for OffsetMapper.
 They have different performance.
 
-PosEncoder/PosDecoder example:
+OffsetEncoder/OffsetDecoder example:
 
 ```go
 f, err := os.Open(filepath.Join("testdata", "words.txt"))
-pm, err := NewAllReadPosMapper(f)
+om, err := NewAllReadOffsetMapper(f)
 
-pm.PosEncode("a")   // 0 ("a" is at 0 byte in testdata/words.txt)
-pm.PosEncode("bcd") // 43 ("bcd" is at 43 bytes in testdata/words.txt)
+om.OffsetEncode("a")   // 0 ("a" is at 0 byte in testdata/words.txt)
+om.OffsetEncode("bcd") // 43 ("bcd" is at 43 bytes in testdata/words.txt)
 
-pm.PosDecode(0)  // "a"
-pm.PosDecode(43) // "bcd"
+om.OffsetDecode(0)  // "a"
+om.OffsetDecode(43) // "bcd"
 ```
 
 ## Encoder/Decoder
 
-Encoder and Decoder can encode/decode bwtween an int64 position value and bytes.
+Encoder and Decoder can encode/decode bwtween an int64 offset value and bytes.
 Encoder/Decoder example:
 
 
 ```go
 f, err := os.Open(filepath.Join("testdata", "words.txt"))
-pm, err := NewAllReadPosMapper(f)
+om, err := NewAllReadOffsetMapper(f)
 
 buf := new(bytes.Buffer)
 
 byteLen := 3 // It encodes/decodes 3 bytes (24 bits) data.
 enc, err := NewEncoder(byteLen)
 
-enc.Encode(buf, 0)               // writes "a" at pos == 0
-enc.EncodeString(buf, pm, "bcd") // writes "bcd"
+enc.Encode(buf, 0)               // writes "a" at offset == 0
+enc.EncodeString(buf, om, "bcd") // writes "bcd"
 
 dec, err := NewDecoder(byteLen)
 
 dec.Decode(buf)           // 0 ("a")
-dec.DecodeString(buf, pm) // "bcd"
+dec.DecodeString(buf, om) // "bcd"
 ```

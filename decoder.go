@@ -21,8 +21,8 @@ func NewDecoder(byteLen int) (*Decoder, error) {
 	return &Decoder{l: byteLen}, nil
 }
 
-// Decode reads r and decodes to pos.
-func (d *Decoder) Decode(r io.Reader) (pos int64, err error) {
+// Decode reads r and decodes to the offset.
+func (d *Decoder) Decode(r io.Reader) (offset int64, err error) {
 	buf := make([]byte, 8)
 	var n int
 	if n, err = r.Read(buf[8-d.l:]); err != nil {
@@ -31,19 +31,19 @@ func (d *Decoder) Decode(r io.Reader) (pos int64, err error) {
 	if n != d.l {
 		return 0, io.ErrUnexpectedEOF
 	}
-	if err = binary.Read(bytes.NewBuffer(buf), binary.BigEndian, &pos); err != nil {
+	if err = binary.Read(bytes.NewBuffer(buf), binary.BigEndian, &offset); err != nil {
 		return
 	}
 	return
 }
 
 // DecodeString reads r and decodes to s.
-func (d *Decoder) DecodeString(r io.Reader, pd PosDecoder) (s string, err error) {
-	pos, err := d.Decode(r)
+func (d *Decoder) DecodeString(r io.Reader, od OffsetDecoder) (s string, err error) {
+	offset, err := d.Decode(r)
 	if err != nil {
 		return
 	}
-	s, err = pd.PosDecode(pos)
+	s, err = od.OffsetDecode(offset)
 	if err != nil {
 		return
 	}

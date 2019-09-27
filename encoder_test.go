@@ -35,8 +35,8 @@ func TestEncode(t *testing.T) {
 		buf := new(bytes.Buffer)
 		enc, _ := NewEncoder(3)
 
-		for _, pos := range test.in {
-			enc.Encode(buf, pos)
+		for _, offset := range test.in {
+			enc.Encode(buf, offset)
 		}
 
 		if !reflect.DeepEqual(test.out, buf.Bytes()) {
@@ -64,17 +64,17 @@ func TestEncodeString(t *testing.T) {
 		},
 		{
 			"z",
-			outType{nil, &PosEncodeError{s: "z"}},
+			outType{nil, &OffsetEncodeError{s: "z"}},
 		},
 	}
 
-	// prepare PosEncoder
+	// prepare OffsetEncoder
 	f, err := os.Open(filepath.Join("testdata", "words.txt"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer f.Close()
-	pd, err := NewAllReadPosMapper(f)
+	om, err := NewAllReadOffsetMapper(f)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestEncodeString(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 
-		err = enc.EncodeString(buf, pd, test.in)
+		err = enc.EncodeString(buf, om, test.in)
 		if !reflect.DeepEqual(test.out.err, err) {
 			t.Errorf("[%d] expected %v, but got %v", idx, test.out.err, err)
 		}
