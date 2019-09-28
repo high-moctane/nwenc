@@ -1,7 +1,7 @@
 package nwenc
 
 import (
-	"fmt"
+	"bufio"
 	"io"
 	"strings"
 	"unicode/utf8"
@@ -21,35 +21,17 @@ func NewAllReadOffsetMapper(r io.Reader) (*AllReadOffsetMapper, error) {
 		offsetToS: map[int64]string{},
 		sToOffset: map[string]int64{},
 	}
-	offset := 0
-	line := []byte{}
 
-	for {
-		buf := make([]byte, 1)
-		_, err := r.Read(buf)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-
-		offset++
-
-		if buf[0] == '\n' {
-			if !utf8.Valid(line) {
-				return nil, fmt.Errorf("invalid string at %d", offset)
-			}
-
-			s := string(line)
-			first := int64(offset - len(line) - 1)
-			m.offsetToS[first] = s
-			m.sToOffset[s] = first
-
-			line = []byte{}
-			continue
-		}
-
-		line = append(line, buf[0])
+	var offset int64
+	sc := bufio.NewScanner(r)
+	for sc.Scan() {
+		line := sc.Text()
+		m.sToOffset[line] = offset
+		m.offsetToS[offset] = line
+		offset += int64(len(line) + 1) // 1 means '\n'
+	}
+	if sc.Err() != nil {
+		return nil, sc.Err()
 	}
 
 	return m, nil
@@ -175,25 +157,17 @@ func findBeginOfLine(r io.ReaderAt, offset int64) (first int64, err error) {
 
 // readLine reads a line from offset to '\n' ('\n' is not included).
 func readLine(r io.ReaderAt, offset int64) (s string, err error) {
-	sBuf := []byte{}
+	sr := io.NewSectionReader(r, offset, bufio.MaxScanTokenSize)
+	sc := bufio.NewScanner(sr)
 
-	var bufLen int64 = 32
-	var i int64
-	for i = 0; ; i++ {
-		buf := make([]byte, bufLen)
-		if _, err = r.ReadAt(buf, offset+bufLen*i); err != nil {
-			if err == io.EOF {
-				sBuf = append(sBuf, buf...)
-				break
-			}
-			return
-		}
-		sBuf = append(sBuf, buf...)
-		if strings.ContainsRune(string(sBuf), '\n') {
-			break
-		}
+	if sc.Scan() {
+		s = sc.Text()
 	}
-	s = strings.Split(string(sBuf), "\n")[0]
+	if sc.Err() != nil {
+		err = sc.Err()
+		return
+	}
+
 	return
 }
 
