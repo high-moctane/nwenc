@@ -23,6 +23,7 @@ func NewDecoder(byteLen int) (*Decoder, error) {
 
 // Decode reads r and decodes to the offset.
 func (d *Decoder) Decode(r io.Reader) (offset int64, err error) {
+	// translate into 8 bytes int64 value
 	buf := make([]byte, 8)
 	var n int
 	if n, err = r.Read(buf[8-d.l:]); err != nil {

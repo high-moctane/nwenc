@@ -2,8 +2,8 @@
 Package nwenc is the implementation of encoder and decoder for the nextword data.
 
 The OffsetEncoder and OffsetDecoder can encode/decode between an int64 offset value
-and a string. There are several implementation for OffsetMapper. They have different
-performance.
+and a string. The offset means the byte offset in a file that the string appears.
+There are several implementation for OffsetMapper. They have different performance.
 
 Encoder and Decoder can encode/decode between an int64 offset value and bytes.
 

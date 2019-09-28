@@ -29,6 +29,7 @@ func (e *Encoder) Encode(w io.Writer, offset int64) error {
 		return err
 	}
 	b := buf.Bytes()
+	// write only e.l length of bytes
 	if _, err := w.Write(b[8-e.l:]); err != nil {
 		return err
 	}
